@@ -6,6 +6,18 @@ const scdl = require("soundcloud-downloader").default;
 const https = require("https");
 const { YOUTUBE_API_KEY, SOUNDCLOUD_CLIENT_ID, DEFAULT_VOLUME } = require("../util/Util");
 const youtube = new YouTubeAPI(YOUTUBE_API_KEY);
+const {
+	NoSubscriberBehavior,
+	StreamType,
+	createAudioPlayer,
+	createAudioResource,
+	entersState,
+	AudioPlayerStatus,
+	VoiceConnectionStatus,
+	joinVoiceChannel,
+  vc,
+} = require('@discordjs/voice');
+
 
 module.exports = {
   name: "play",
@@ -13,9 +25,22 @@ module.exports = {
   aliases: ["p"],
   description: i18n.__("play.description"),
   async execute(message, args) {
+    
     const { channel } = message.member.voice;
-   
-  
+    async function connectToChannel(channel) {
+      const connection = joinVoiceChannel({
+        channelId: channel.id,
+        guildId: channel.guild.id,
+        adapterCreator: channel.guild.voiceAdapterCreator,
+      });
+      try {
+        await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
+        return connection;
+      } catch (error) {
+        connection.destroy();
+        throw error;
+      }
+    }
     const serverQueue = message.client.queue.get(message.guild.id);
 
     if (!channel) return message.reply(i18n.__("play.errorNotChannel")).catch(console.error);
@@ -140,13 +165,13 @@ module.exports = {
     message.client.queue.set(message.guild.id, queueConstruct);
 
     try {
-      queueConstruct.connection = await channel.join();
-      await queueConstruct.connection.voice.setSelfDeaf(true);
+      queueConstruct.connection = await connectToChannel(channel);
+      await queueConstruct.connection.voice.setDeaf(true).then(guild.me.voice.setSuppressed(false));
       play(queueConstruct.songs[0], message);
     } catch (error) {
       console.error(error);
       message.client.queue.delete(message.guild.id);
-      await channel.leave();
+      await connectToChannel(channel).connection.destroy();
       return message.channel.send(i18n.__mf("play.cantJoinChannel", { error: error })).catch(console.error);
     }
   }

@@ -1,13 +1,17 @@
 /**
  * Module Imports
  */
-const { Client, Collection } = require("discord.js");
+const { Client, Collection, Intents } = require("discord.js");
 const { readdirSync } = require("fs");
 const { join } = require("path");
 const { TOKEN, PREFIX } = require("./util/Util");
 const i18n = require("./util/i18n");
+const { setFlagsFromString } = require("v8");
+const anoythingindiscordjsv13 = new Intents();
+anoythingindiscordjsv13.add(Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_VOICE_STATES, Intents.FLAGS.GUILD_MESSAGES);
 
 const client = new Client({
+  intents: anoythingindiscordjsv13,
   disableMentions: "everyone",
   restTimeOffset: 0
 });
