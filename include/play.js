@@ -2,7 +2,8 @@ const ytdl = require("ytdl-core-discord");
 const scdl = require("soundcloud-downloader").default;
 const { canModifyQueue, STAY_TIME } = require("../util/Util");
 const i18n = require("../util/i18n");
-
+const { createAudioPlayer,
+	createAudioResource,} = require("@discordjs/voice")
 module.exports = {
   async play(song, message, silent = false) {
     const { SOUNDCLOUD_CLIENT_ID } = require("../util/Util");
@@ -17,7 +18,12 @@ module.exports = {
 
     const PRUNING = config ? config.PRUNING : process.env.PRUNING;
 
-    const queue = message.client.queue.get(message.guild.id);
+
+
+    const queue = ( await message.client.queue.get(message.guild.id),
+                    createAudioPlayer(),
+                    require('@discordjs/voice')
+    )
 
     if (!song) {
       setTimeout(function () {
@@ -28,7 +34,7 @@ module.exports = {
       !PRUNING && queue.textChannel.send(i18n.__("play.queueEnded")).catch(console.error);
       return message.client.queue.delete(message.guild.id);
     }
-
+    
     let stream = null;
     let streamType = song.url.includes("youtube.com") ? "opus" : "ogg/opus";
 
@@ -56,9 +62,11 @@ module.exports = {
     }
 
     queue.connection.on("disconnect", () => message.client.queue.delete(message.guild.id));
+    const resource = createAudioResource(stream, { type: streamType });
+  player.play(resource)
 
     const dispatcher = queue.connection
-      .play(stream, { type: streamType })
+      .subscribe(player)
       .on("finish", () => {
         if (collector && !collector.ended) collector.stop();
 

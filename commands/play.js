@@ -166,12 +166,12 @@ module.exports = {
 
     try {
       queueConstruct.connection = await connectToChannel(channel);
-      await queueConstruct.connection.voice.setDeaf(true).then(guild.me.voice.setSuppressed(false));
+      await message.guild.me.voice.setSuppressed(false);
       play(queueConstruct.songs[0], message);
     } catch (error) {
       console.error(error);
       message.client.queue.delete(message.guild.id);
-      await connectToChannel(channel).connection.destroy();
+      await queueConstruct.connection.destroy();
       return message.channel.send(i18n.__mf("play.cantJoinChannel", { error: error })).catch(console.error);
     }
   }
